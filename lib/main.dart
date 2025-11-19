@@ -130,8 +130,54 @@ class _LoginPageState extends State<LoginPage> {
   }
 }
 
-class PokedexHome extends StatelessWidget {
+class PokedexHome extends StatefulWidget {
   const PokedexHome({Key? key}) : super(key: key);
+
+  @override
+  State<PokedexHome> createState() => _PokedexHomeState();
+}
+
+class _PokedexHomeState extends State<PokedexHome> {
+  List<PokemonCardData> pokemons = [];
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchPokemons();
+  }
+
+  Future<void> fetchPokemons() async {
+    final response = await http.get(
+      Uri.parse('https://pokeapi.co/api/v2/pokemon?limit=30'),
+    );
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      final List results = data['results'];
+      List<PokemonCardData> tempList = [];
+      for (var item in results) {
+        final pokeDetails = await http.get(Uri.parse(item['url']));
+        if (pokeDetails.statusCode == 200) {
+          final pokeData = json.decode(pokeDetails.body);
+          tempList.add(
+            PokemonCardData(
+              name: pokeData['name'],
+              imageUrl:
+                  pokeData['sprites']['other']['official-artwork']['front_default'] ??
+                  '',
+              types: (pokeData['types'] as List)
+                  .map((t) => t['type']['name'] as String)
+                  .toList(),
+            ),
+          );
+        }
+      }
+      setState(() {
+        pokemons = tempList;
+        isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -142,7 +188,138 @@ class PokedexHome extends StatelessWidget {
         foregroundColor: Colors.white,
         elevation: 0,
       ),
-      body: Container(), // Página em branco
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: GridView.builder(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  childAspectRatio: 0.8,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                ),
+                itemCount: pokemons.length,
+                itemBuilder: (context, index) {
+                  final pokemon = pokemons[index];
+                  return PokemonCard(pokemon: pokemon);
+                },
+              ),
+            ),
+    );
+  }
+}
+
+class PokemonCardData {
+  final String name;
+  final String imageUrl;
+  final List<String> types;
+  PokemonCardData({
+    required this.name,
+    required this.imageUrl,
+    required this.types,
+  });
+}
+
+class PokemonCard extends StatelessWidget {
+  final PokemonCardData pokemon;
+  const PokemonCard({Key? key, required this.pokemon}) : super(key: key);
+
+  Color getTypeColor(String type) {
+    switch (type) {
+      case 'fire':
+        return Colors.redAccent;
+      case 'water':
+        return Colors.blueAccent;
+      case 'grass':
+        return Colors.green;
+      case 'electric':
+        return Colors.yellow[700]!;
+      case 'psychic':
+        return Colors.purpleAccent;
+      case 'ice':
+        return Colors.cyanAccent;
+      case 'ground':
+        return Colors.brown;
+      case 'rock':
+        return Colors.grey;
+      case 'fairy':
+        return Colors.pinkAccent;
+      case 'poison':
+        return Colors.deepPurple;
+      case 'bug':
+        return Colors.lightGreen;
+      case 'flying':
+        return Colors.indigoAccent;
+      case 'fighting':
+        return Colors.orangeAccent;
+      case 'dragon':
+        return Colors.indigo;
+      case 'ghost':
+        return Colors.deepPurpleAccent;
+      default:
+        return Colors.grey[300]!;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 6,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          gradient: LinearGradient(
+            colors: [Colors.white, Colors.red[50]!],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            pokemon.imageUrl.isNotEmpty
+                ? Image.network(
+                    pokemon.imageUrl,
+                    height: 90,
+                    fit: BoxFit.contain,
+                  )
+                : const SizedBox(height: 90),
+            const SizedBox(height: 12),
+            Text(
+              pokemon.name[0].toUpperCase() + pokemon.name.substring(1),
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              children: pokemon.types
+                  .map(
+                    (type) => Chip(
+                      label: Text(
+                        type,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      backgroundColor: getTypeColor(type),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 0,
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
