@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../models/pokemon.dart';
 import '../widgets/pokemon_card.dart';
+import 'pokemon_detail.dart';
 
 class PokedexHome extends StatefulWidget {
   const PokedexHome({Key? key}) : super(key: key);
@@ -19,24 +20,42 @@ class _PokedexHomeState extends State<PokedexHome> {
   bool isLoading = true;
   Set<String> allTypes = {};
   String searchText = '';
+  int selectedGeneration = 1;
+  final Map<int, String> generationNames = {
+    1: 'generation-i',
+    2: 'generation-ii',
+    3: 'generation-iii',
+    4: 'generation-iv',
+    5: 'generation-v',
+    6: 'generation-vi',
+    7: 'generation-vii',
+    8: 'generation-viii',
+  };
 
   @override
   void initState() {
     super.initState();
-    fetchPokemons();
+    fetchPokemonsByGeneration(selectedGeneration);
   }
 
-  Future<void> fetchPokemons() async {
+  Future<void> fetchPokemonsByGeneration(int generation) async {
+    setState(() {
+      isLoading = true;
+    });
+    final genName = generationNames[generation] ?? 'generation-i';
     final response = await http.get(
-      Uri.parse('https://pokeapi.co/api/v2/pokemon?limit=30'),
+      Uri.parse('https://pokeapi.co/api/v2/generation/$genName'),
     );
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
-      final List results = data['results'];
+      final List species = data['pokemon_species'];
       List<Pokemon> tempList = [];
       Set<String> typeSet = {};
-      for (var item in results) {
-        final pokeDetails = await http.get(Uri.parse(item['url']));
+      for (var item in species) {
+        final pokeName = item['name'];
+        final pokeDetails = await http.get(
+          Uri.parse('https://pokeapi.co/api/v2/pokemon/$pokeName'),
+        );
         if (pokeDetails.statusCode == 200) {
           final pokeData = json.decode(pokeDetails.body);
           List<String> types = (pokeData['types'] as List)
@@ -49,7 +68,7 @@ class _PokedexHomeState extends State<PokedexHome> {
               imageUrl:
                   pokeData['sprites']['other']['official-artwork']['front_default'] ?? '',
               types: types,
-              url: item['url'],
+              url: 'https://pokeapi.co/api/v2/pokemon/${pokeData['id']}',
             ),
           );
         }
@@ -106,6 +125,35 @@ class _PokedexHomeState extends State<PokedexHome> {
               children: [
                 Padding(
                   padding: const EdgeInsets.all(8.0),
+                  child: Row(
+                    children: [
+                      const Text(
+                        'Geração:',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(width: 8),
+                      DropdownButton<int>(
+                        value: selectedGeneration,
+                        items: generationNames.keys.map((gen) {
+                          return DropdownMenuItem<int>(
+                            value: gen,
+                            child: Text('Geração $gen'),
+                          );
+                        }).toList(),
+                        onChanged: (val) {
+                          if (val != null) {
+                            setState(() {
+                              selectedGeneration = val;
+                            });
+                            fetchPokemonsByGeneration(val);
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
                   child: TextField(
                     decoration: const InputDecoration(
                       labelText: 'Pesquisar Pokémon',
@@ -160,9 +208,16 @@ class _PokedexHomeState extends State<PokedexHome> {
                           pokemon: pokemon,
                           onFavorite: () => toggleFavorite(pokemon),
                           onTap: () {
-                            // Navegação para tela de detalhes pode ser implementada aqui
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    PokemonDetailPage(pokemon: pokemon),
+                              ),
+                            );
                           },
                         );
+// ...existing code...
                       },
                     ),
                   ),
