@@ -1,9 +1,8 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'screens/pokedex_home.dart';
 
-// ...existing code...
 void main() {
   runApp(const MyApp());
 }
@@ -24,18 +23,6 @@ class MyApp extends StatelessWidget {
   }
 }
 
-@override
-Widget build(BuildContext context) {
-  return MaterialApp(
-    title: 'Pokedex',
-    theme: ThemeData(
-      colorScheme: ColorScheme.fromSeed(seedColor: Colors.red),
-      useMaterial3: true,
-    ),
-    home: const LoginPage(),
-  );
-}
-
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
 
@@ -47,6 +34,8 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   String? _error;
+  
+  get mainAxisSpacing => null;
 
   void _login() {
     setState(() {
@@ -103,8 +92,7 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 const SizedBox(height: 20),
                 if (_error != null)
-                  Text(
-                      _error!, style: const TextStyle(color: Colors.red)),
+                  Text(_error!, style: const TextStyle(color: Colors.red)),
                 const SizedBox(height: 20),
                 SizedBox(
                   width: double.infinity,
@@ -126,86 +114,6 @@ class _LoginPageState extends State<LoginPage> {
           ),
         ),
       ),
-    );
-  }
-}
-
-class PokedexHome extends StatefulWidget {
-  const PokedexHome({Key? key}) : super(key: key);
-
-  @override
-  State<PokedexHome> createState() => _PokedexHomeState();
-}
-
-class _PokedexHomeState extends State<PokedexHome> {
-  List<PokemonCardData> pokemons = [];
-  bool isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    fetchPokemons();
-  }
-
-  Future<void> fetchPokemons() async {
-    final response = await http.get(
-      Uri.parse('https://pokeapi.co/api/v2/pokemon?limit=30'),
-    );
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      final List results = data['results'];
-      List<PokemonCardData> tempList = [];
-      for (var item in results) {
-        final pokeDetails = await http.get(Uri.parse(item['url']));
-        if (pokeDetails.statusCode == 200) {
-          final pokeData = json.decode(pokeDetails.body);
-          tempList.add(
-            PokemonCardData(
-              name: pokeData['name'],
-              imageUrl:
-                  pokeData['sprites']['other']['official-artwork']['front_default'] ??
-                  '',
-              types: (pokeData['types'] as List)
-                  .map((t) => t['type']['name'] as String)
-                  .toList(),
-            ),
-          );
-        }
-      }
-      setState(() {
-        pokemons = tempList;
-        isLoading = false;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Pokedex'),
-        backgroundColor: Colors.red[700],
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: GridView.builder(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  childAspectRatio: 0.8,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                ),
-                itemCount: pokemons.length,
-                itemBuilder: (context, index) {
-                  final pokemon = pokemons[index];
-                  return PokemonCard(pokemon: pokemon);
-                },
-              ),
-            ),
     );
   }
 }
