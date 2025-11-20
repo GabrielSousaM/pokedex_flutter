@@ -11,7 +11,7 @@ Uma Pokedex completa feita em Flutter, conectada à PokeAPI, com interface moder
 - **Favoritos**: Marque Pokémons favoritos e visualize apenas eles.
 - **Filtro por Geração**: Carregue Pokémons de diferentes gerações (Gen 1 a Gen 8) usando dropdown.
 - **Tela de Detalhes**: Ao clicar em um Pokémon, veja informações detalhadas: imagem grande, número, nome, altura, peso, tipos, habilidades, fraquezas e descrição.
-- **Layout Responsivo**: Interface adaptada para mobile e desktop.
+- **Layout Responsivo**: Interface adaptada para mobile
 
 ## Estrutura do Projeto
 
